@@ -26,7 +26,7 @@ func NewParser(args *internal.ConsoleArgs) (parsers.Parser, error) {
 
 	switch value {
 	case MangaDex:
-		return parsers.NewMangaDexParser(), nil
+		return parsers.NewMangaDexParser(args.Source.URL), nil
 	default:
 		return nil, errors.Join(internal.SetSemanticError(), fmt.Errorf("Cannot found parser for %s", value))
 	}
