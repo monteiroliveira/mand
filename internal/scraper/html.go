@@ -1,4 +1,4 @@
-package internal
+package scraper
 
 import "golang.org/x/net/html"
 
