@@ -2,6 +2,7 @@ package parsers
 
 // TODO: Adjust interface content
 type Parser interface {
-	Extract() ([]byte, error)
-	Download() error
+	ExtractChapterName() (string, error)
+	ExtractSingleChapter() ([][]byte, error)
+	DownloadPages(pages [][]byte) error
 }
