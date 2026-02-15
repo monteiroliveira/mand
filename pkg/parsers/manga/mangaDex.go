@@ -1,9 +1,16 @@
-package parsers
+// Manga Dex manga parser, extracting the manga content from the API and
+// the manga title from the chapter page via Web Scrap.
+//
+// Starting with Manga Dex as the first parser because they have a good
+// API to work with, and I'm too lazy to fully scrap a site for now.
+// REFERENCE: https://api.mangadex.org/docs/?ref=public_apis
+package manga
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"strings"
 
@@ -20,6 +27,7 @@ var (
 
 type MangaDexParser struct {
 	source       *url.URL
+	chapterId    string
 	client       *scraper.HttpClient
 	imageManager *internal.ImageManager
 	htmlManager  *scraper.HtmlManager
@@ -28,6 +36,7 @@ type MangaDexParser struct {
 func NewMangaDexParser(source *url.URL) *MangaDexParser {
 	return &MangaDexParser{
 		source:       source,
+		chapterId:    "",
 		client:       scraper.NewHttpClient(),
 		imageManager: internal.NewImageManager(),
 		htmlManager:  scraper.NewHtmlManager(),
@@ -37,7 +46,7 @@ func NewMangaDexParser(source *url.URL) *MangaDexParser {
 func getChapterId(url *url.URL) (string, error) {
 	pathContent := strings.Split(url.Path, "/")
 	if len(pathContent) <= 1 {
-		return "", nil
+		return "", fmt.Errorf("Failed to extract chapter id")
 	}
 
 	chapterId := pathContent[len(pathContent)-1]
@@ -84,9 +93,10 @@ func (p *MangaDexParser) ExtractChapterName() (string, error) {
 // TODO: create a flow to parse novels and mangas
 func (p *MangaDexParser) ExtractSingleChapter() ([][]byte, error) {
 	chapterId, err := getChapterId(p.source)
-	if err != nil {
+	if err != nil && chapterId == "" {
 		return nil, err
 	}
+	p.chapterId = chapterId
 
 	downloadEndpoint := mangaDexChDownEndpoint + chapterId
 	downloadInfo, err := p.client.Get(context.Background(), downloadEndpoint)
@@ -115,10 +125,7 @@ func (p *MangaDexParser) DownloadPages(pages [][]byte) error {
 
 	chn, err := p.ExtractChapterName()
 	if err != nil && chn != "" {
-		chn, err = getChapterId(p.source)
-		if err != nil {
-			chn = "mand_manga" // TODO: uuid
-		}
+		chn = p.chapterId
 	}
 
 	if err = p.imageManager.SaveImageInSystem(content, chn); err != nil {
@@ -128,4 +135,4 @@ func (p *MangaDexParser) DownloadPages(pages [][]byte) error {
 	return nil
 }
 
-var _ Parser = &MangaDexParser{}
+var _ MangaParser = &MangaDexParser{}

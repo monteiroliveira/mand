@@ -5,28 +5,28 @@ import (
 	"fmt"
 
 	"github.com/monteiroliveira/mand/internal"
-	"github.com/monteiroliveira/mand/pkg/parsers"
+	"github.com/monteiroliveira/mand/pkg/parsers/manga"
 )
 
-type Parsers string
+type MangaParsers string
 
 const (
-	MangaDex Parsers = "MangaDex"
+	MangaDex MangaParsers = "MangaDex"
 )
 
-var SupportedParsers map[string]Parsers = map[string]Parsers{
-	parsers.MangaDexValidLink: MangaDex,
+var SupportedMangaParsers map[string]MangaParsers = map[string]MangaParsers{
+	manga.MangaDexValidLink: MangaDex,
 }
 
-func NewParser(args *internal.ConsoleArgs) (parsers.Parser, error) {
-	value, ok := SupportedParsers[args.Source.URL.Host]
+func NewMangaParser(args *internal.ConsoleArgs) (manga.MangaParser, error) {
+	value, ok := SupportedMangaParsers[args.Manga.Download.Source.URL.Host]
 	if !ok {
 		return nil, errors.Join(internal.SetSemanticError(), fmt.Errorf("Unsupported Source Link"))
 	}
 
 	switch value {
 	case MangaDex:
-		return parsers.NewMangaDexParser(args.Source.URL), nil
+		return manga.NewMangaDexParser(args.Manga.Download.Source.URL), nil
 	default:
 		return nil, errors.Join(internal.SetSemanticError(), fmt.Errorf("Cannot found parser for %s", value))
 	}

@@ -26,8 +26,16 @@ func (s *Source) UnmarshalText(b []byte) error {
 	return nil
 }
 
+type Download struct {
+	Source *Source `arg:"positional,required" help:"Link to the source of manga or novel"`
+}
+
+type Manga struct {
+	Download *Download `arg:"subcommand:download" help:"Download from source"`
+}
+
 type ConsoleArgs struct {
-	Source  Source `arg:"positional,required" help:"Link to the source of manga or novel"`
+	Manga   *Manga `arg:"subcommand:manga"`
 	Verbose bool   `arg:"-v,--verbose" help:"verbosity level"`
 }
 
