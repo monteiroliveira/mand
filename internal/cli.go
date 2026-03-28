@@ -35,7 +35,8 @@ type Download struct {
 }
 
 type Manga struct {
-	Download *Download `arg:"subcommand:download" help:"Download from source"`
+	Download     *Download `arg:"subcommand:download" help:"Download from source"`
+	DownloadList *Download `arg:"subcommand:downloadList" help:"Download Manga list from source"`
 }
 
 type ConsoleArgs struct {

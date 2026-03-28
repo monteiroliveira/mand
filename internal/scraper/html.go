@@ -72,6 +72,10 @@ func (h *HtmlManager) extractNodeAttrVal(
 			if attr.Key == "src" {
 				content = attr.Val
 			}
+			if attr.Key == "href" {
+				content = attr.Val
+			}
+
 		}
 		if hasAttr {
 			return content, true

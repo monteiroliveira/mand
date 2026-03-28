@@ -4,5 +4,6 @@ package manga
 type MangaParser interface {
 	ExtractChapterName() (string, error)
 	ExtractSingleChapter() ([][]byte, error)
-	DownloadPages(pages [][]byte) error
+	DownloadPages(pages [][]byte, chapterName string) error
+	ExtractChapterList() error
 }

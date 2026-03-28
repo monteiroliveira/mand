@@ -87,7 +87,11 @@ func (p *MangaDexParser) ExtractChapterName() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return p.htmlManager.FindHtmlContent(doc, "meta", "property", "og:title"), nil
+	chapterName := p.htmlManager.FindHtmlContent(doc, "meta", "property", "og:title")
+	if chapterName == "" {
+		return p.source.String(), nil
+	}
+	return chapterName, nil
 }
 
 // TODO: create a flow to parse novels and mangas
@@ -117,22 +121,21 @@ func (p *MangaDexParser) ExtractSingleChapter() ([][]byte, error) {
 	return pages, nil
 }
 
-func (p *MangaDexParser) DownloadPages(pages [][]byte) error {
+func (p *MangaDexParser) DownloadPages(pages [][]byte, chapterName string) error {
 	content, err := p.imageManager.ConcatPages(pages)
 	if err != nil {
 		return err
 	}
 
-	chn, err := p.ExtractChapterName()
-	if err != nil && chn == "" {
-		chn = p.source.String()
-	}
-
-	if err = p.imageManager.SaveImageInSystem(content, chn); err != nil {
+	if err = p.imageManager.SaveImageInSystem(content, chapterName); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (p *MangaDexParser) ExtractChapterList() error {
+	return fmt.Errorf("Not supported")
 }
 
 var _ MangaParser = &MangaDexParser{}

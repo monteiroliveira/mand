@@ -3,6 +3,7 @@ package pkg
 import (
 	"errors"
 	"fmt"
+	"net/url"
 
 	"github.com/monteiroliveira/mand/internal"
 	"github.com/monteiroliveira/mand/pkg/parsers/manga"
@@ -20,17 +21,17 @@ var SupportedMangaParsers map[string]MangaParsers = map[string]MangaParsers{
 	manga.MangaReadValidLink: MangaRead,
 }
 
-func NewMangaParser(args *internal.ConsoleArgs) (manga.MangaParser, error) {
-	value, ok := SupportedMangaParsers[args.Manga.Download.Source.URL.Host]
+func NewMangaParser(source *url.URL) (manga.MangaParser, error) {
+	value, ok := SupportedMangaParsers[source.Host]
 	if !ok {
 		return nil, errors.Join(internal.SetSemanticError(), fmt.Errorf("Unsupported Source Link"))
 	}
 
 	switch value {
 	case MangaDex:
-		return manga.NewMangaDexParser(args.Manga.Download.Source.URL), nil
+		return manga.NewMangaDexParser(source), nil
 	case MangaRead:
-		return manga.NewMangaReadParser(args.Manga.Download.Source.URL), nil
+		return manga.NewMangaReadParser(source), nil
 	default:
 		return nil, errors.Join(internal.SetSemanticError(), fmt.Errorf("Cannot found parser for %s", value))
 	}
