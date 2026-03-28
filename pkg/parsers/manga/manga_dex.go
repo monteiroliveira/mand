@@ -124,8 +124,8 @@ func (p *MangaDexParser) DownloadPages(pages [][]byte) error {
 	}
 
 	chn, err := p.ExtractChapterName()
-	if err != nil && chn != "" {
-		chn = p.chapterId
+	if err != nil && chn == "" {
+		chn = p.source.String()
 	}
 
 	if err = p.imageManager.SaveImageInSystem(content, chn); err != nil {

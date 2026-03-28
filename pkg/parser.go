@@ -11,11 +11,13 @@ import (
 type MangaParsers string
 
 const (
-	MangaDex MangaParsers = "MangaDex"
+	MangaDex  MangaParsers = "MangaDex"
+	MangaRead MangaParsers = "MangaRead"
 )
 
 var SupportedMangaParsers map[string]MangaParsers = map[string]MangaParsers{
-	manga.MangaDexValidLink: MangaDex,
+	manga.MangaDexValidLink:  MangaDex,
+	manga.MangaReadValidLink: MangaRead,
 }
 
 func NewMangaParser(args *internal.ConsoleArgs) (manga.MangaParser, error) {
@@ -27,6 +29,8 @@ func NewMangaParser(args *internal.ConsoleArgs) (manga.MangaParser, error) {
 	switch value {
 	case MangaDex:
 		return manga.NewMangaDexParser(args.Manga.Download.Source.URL), nil
+	case MangaRead:
+		return manga.NewMangaReadParser(args.Manga.Download.Source.URL), nil
 	default:
 		return nil, errors.Join(internal.SetSemanticError(), fmt.Errorf("Cannot found parser for %s", value))
 	}

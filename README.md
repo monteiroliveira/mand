@@ -7,8 +7,10 @@ go build cmd/main.go -o mand
 ```
 
 ```bash
-mand manga download https://mangadex.org/chapter/{{CHAPTER_ID}}
+mand manga download {{ MANGA_URL }}
 ```
 
 > [!NOTE]
-> For now only Manga Dex is available as a manga source.
+> Supported Parsers:
+> - [x] Manga Dex
+> - [x] Manga Read
