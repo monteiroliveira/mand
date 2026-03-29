@@ -33,9 +33,9 @@ type MangaDexParser struct {
 	htmlManager  *scraper.HtmlManager
 }
 
-func NewMangaDexParser(source *url.URL) *MangaDexParser {
+func NewMangaDexParser(args *MangaParserArgs) *MangaDexParser {
 	return &MangaDexParser{
-		source:       source,
+		source:       args.Source,
 		chapterId:    "",
 		client:       scraper.NewHttpClient(),
 		imageManager: internal.NewImageManager(),
@@ -87,7 +87,7 @@ func (p *MangaDexParser) ExtractChapterName() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	chapterName := p.htmlManager.FindHtmlContent(doc, "meta", "property", "og:title")
+	chapterName := p.htmlManager.FindHtmlContent(doc, "meta", "property", "$og:title^")
 	if chapterName == "" {
 		return p.source.String(), nil
 	}

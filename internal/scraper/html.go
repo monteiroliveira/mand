@@ -1,6 +1,8 @@
 package scraper
 
 import (
+	"regexp"
+
 	"golang.org/x/net/html"
 )
 
@@ -33,6 +35,28 @@ func (h *HtmlManager) searchInHtmlNode(
 	return ""
 }
 
+func (h *HtmlManager) searchListInHtmlNode(
+	n *html.Node, searchFunc HtmlSearchFunc,
+	nTargetData, nTargetKey, nTargetVal string,
+) []string {
+	content := []string{}
+	if n == nil {
+		return nil
+	}
+
+	if ch, ok := searchFunc(n, nTargetData, nTargetKey, nTargetVal); ok {
+		return []string{ch}
+	}
+
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		res := h.searchListInHtmlNode(c, searchFunc, nTargetData, nTargetKey, nTargetVal)
+		if res != nil {
+			content = append(content, res[:]...)
+		}
+	}
+	return content
+}
+
 func (h *HtmlManager) extractNodeData(
 	n *html.Node, nTargetData, nTargetKey, nTargetVal string,
 ) (string, bool) {
@@ -50,21 +74,19 @@ func (h *HtmlManager) extractNodeData(
 	return "", false
 }
 
-func (h *HtmlManager) FindHtmlContentData(
-	n *html.Node, nTargetData, nTargetKey, nTargetVal string,
-) string {
-	return h.searchInHtmlNode(n, h.extractNodeData, nTargetData, nTargetKey, nTargetVal)
-}
-
 func (h *HtmlManager) extractNodeAttrVal(
 	n *html.Node, nTargetData, nTargetKey, nTargetVal string,
 ) (string, bool) {
 	if n.Type == html.ElementNode && n.Data == nTargetData {
 		var content string
-		hasAttr := false
+		found := false
 		for _, attr := range n.Attr {
-			if attr.Key == nTargetKey && attr.Val == nTargetVal {
-				hasAttr = true
+			match, err := regexp.MatchString(nTargetVal, attr.Val)
+			if err != nil {
+				continue
+			}
+			if match {
+				found = true
 			}
 			if attr.Key == "content" {
 				content = attr.Val
@@ -75,17 +97,28 @@ func (h *HtmlManager) extractNodeAttrVal(
 			if attr.Key == "href" {
 				content = attr.Val
 			}
-
 		}
-		if hasAttr {
+		if found {
 			return content, true
 		}
 	}
 	return "", false
 }
 
+func (h *HtmlManager) FindHtmlContentData(
+	n *html.Node, nTargetData, nTargetKey, nTargetVal string,
+) string {
+	return h.searchInHtmlNode(n, h.extractNodeData, nTargetData, nTargetKey, nTargetVal)
+}
+
 func (h *HtmlManager) FindHtmlContent(
 	n *html.Node, nTargetData, nTargetKey, nTargetVal string,
 ) string {
 	return h.searchInHtmlNode(n, h.extractNodeAttrVal, nTargetData, nTargetKey, nTargetVal)
+}
+
+func (h *HtmlManager) ListHtmlContent(
+	n *html.Node, nTargetData, nTargetKey, nTargetVal string,
+) []string {
+	return h.searchListInHtmlNode(n, h.extractNodeAttrVal, nTargetData, nTargetKey, nTargetVal)
 }

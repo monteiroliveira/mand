@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"net/url"
 	"strings"
+	"sync"
 
 	"golang.org/x/net/html"
 
@@ -18,16 +18,18 @@ var (
 )
 
 type MangaReadParser struct {
-	source       *url.URL
+	args         *MangaParserArgs
 	client       *scraper.HttpClient
+	regex        *scraper.RegexParser
 	imageManager *internal.ImageManager
 	htmlManager  *scraper.HtmlManager
 }
 
-func NewMangaReadParser(source *url.URL) *MangaReadParser {
+func NewMangaReadParser(args *MangaParserArgs) *MangaReadParser {
 	return &MangaReadParser{
-		source:       source,
+		args:         args,
 		client:       scraper.NewHttpClient(),
+		regex:        scraper.NewRegexParser(),
 		imageManager: internal.NewImageManager(),
 		htmlManager:  scraper.NewHtmlManager(),
 	}
@@ -58,7 +60,7 @@ func (p *MangaReadParser) getChapterName(source string) (string, error) {
 	}
 	chapterName := p.htmlManager.FindHtmlContentData(doc, "h1", "id", "chapter-heading")
 	if chapterName == "" {
-		return p.source.String(), nil
+		return p.args.Source.String(), nil
 	}
 	return chapterName, nil
 }
@@ -77,8 +79,7 @@ func (p *MangaReadParser) extractChapter(source string) ([][]byte, error) {
 	links := []string{}
 
 	for i := 0; ; i++ {
-		imageName := "image"
-		link := p.htmlManager.FindHtmlContent(doc, "img", "id", fmt.Sprintf("%s-%d", imageName, i))
+		link := p.htmlManager.FindHtmlContent(doc, "img", "id", fmt.Sprintf("^image-%d$", i))
 		if link == "" && i != 0 {
 			break
 		}
@@ -98,53 +99,61 @@ func (p *MangaReadParser) extractChapter(source string) ([][]byte, error) {
 }
 
 func (p *MangaReadParser) ExtractChapterList() error {
-	downloadInfo, err := p.client.Get(context.Background(), p.source.String())
+	downloadInfo, err := p.client.Get(context.Background(), p.args.Source.String())
 	if err != nil {
 		return err
 	}
 
-	chaptersLinks := []string{}
 	doc, err := html.Parse(bytes.NewReader(downloadInfo))
 	if err != nil {
 		return err
 	}
 
-	for i := 0; ; i++ {
-		link := p.htmlManager.FindHtmlContent(doc, "a", "href", fmt.Sprintf("%schapter-%d/", p.source.String(), i))
-		if link == "" && i != 0 {
-			break
-		}
-		if link != "" {
-			chaptersLinks = append(chaptersLinks, strings.TrimSpace(link))
-		}
+	urlTemplate, err := p.regex.Normalize(p.args.Source.String())
+	if err != nil {
+		return err
 	}
-	if len(chaptersLinks) == 0 {
+
+	links := p.htmlManager.ListHtmlContent(doc, "a", "href", fmt.Sprintf("%schapter.*", urlTemplate))
+	if len(links) == 0 {
 		return fmt.Errorf("cant extract manga links")
 	}
 
-	for _, link := range chaptersLinks {
-		chp, err := p.extractChapter(link)
-		if err != nil {
-			// TODO: Log error
-			continue
-		}
-		chn, err := p.getChapterName(link)
-		if err != nil || chn == "" {
-			chn = p.source.String()
-		}
-		if err = p.DownloadPages(chp, chn); err != nil {
-			continue
-		}
+	ch := make(chan error)
+	var wg sync.WaitGroup
+	fmt.Println(len(links))
+	wg.Add(len(links))
+
+	for _, link := range links {
+		go func() {
+			chp, err := p.extractChapter(link)
+			if err != nil {
+				// TODO: Log error
+				ch <- err
+			}
+			chn, err := p.getChapterName(link)
+			if err != nil || chn == "" {
+				chn = p.args.Source.String()
+			}
+			if err = p.DownloadPages(chp, chn); err != nil {
+				ch <- err
+			}
+			wg.Done()
+		}()
 	}
+
+	wg.Wait()
+	close(ch)
+
 	return nil
 }
 
 func (p *MangaReadParser) ExtractChapterName() (string, error) {
-	return p.getChapterName(p.source.String())
+	return p.getChapterName(p.args.Source.String())
 }
 
 func (p *MangaReadParser) ExtractSingleChapter() ([][]byte, error) {
-	return p.extractChapter(p.source.String())
+	return p.extractChapter(p.args.Source.String())
 }
 
 func (p *MangaReadParser) DownloadPages(pages [][]byte, chapterName string) error {

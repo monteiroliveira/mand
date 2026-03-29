@@ -8,7 +8,6 @@ import (
 	"image/draw"
 	"image/jpeg"
 	"image/png"
-	"net/http"
 	"os"
 
 	"github.com/jung-kurt/gofpdf"

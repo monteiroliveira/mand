@@ -35,13 +35,13 @@ type Download struct {
 }
 
 type Manga struct {
-	Download     *Download `arg:"subcommand:download" help:"Download from source"`
-	DownloadList *Download `arg:"subcommand:downloadList" help:"Download Manga list from source"`
+	Download     *Download `arg:"subcommand:d" help:"Download Manga from source"`
+	DownloadList *Download `arg:"subcommand:dl" help:"Download Manga chapters list from source"`
 }
 
 type ConsoleArgs struct {
 	Manga   *Manga `arg:"subcommand:manga"`
-	Verbose bool   `arg:"-v,--verbose" help:"verbosity level"`
+	Verbose bool   `arg:"-v,--verbose" help:"Verbosity level"`
 }
 
 func NewArgs() *ConsoleArgs {
