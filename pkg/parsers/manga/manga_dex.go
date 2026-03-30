@@ -87,7 +87,7 @@ func (p *MangaDexParser) ExtractChapterName() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	chapterName := p.htmlManager.FindHtmlContent(doc, "meta", "property", "$og:title^")
+	chapterName := p.htmlManager.FindHtmlContent(doc, "meta", "property", "^og:title$")
 	if chapterName == "" {
 		return p.source.String(), nil
 	}
