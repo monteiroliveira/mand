@@ -19,6 +19,6 @@ mand manga d {{ MANGA_URL }}
 > TODOs:
 > - [ ] Create a log system;
 > - [ ] Add a way control to what chapter will be downloaded from download list (dl) operation;
-> - [ ] Add async workers control from download list (dl) operation;
+> - [x] Add async workers control from download list (dl) operation;
 > - [ ] Add more parsers;
 > - [ ] Init novel parser package.

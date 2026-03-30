@@ -95,7 +95,7 @@ func (p *MangaDexParser) ExtractChapterName() (string, error) {
 }
 
 // TODO: create a flow to parse novels and mangas
-func (p *MangaDexParser) ExtractSingleChapter() ([][]byte, error) {
+func (p *MangaDexParser) ExtractChapterContent() ([][]byte, error) {
 	chapterId, err := getChapterId(p.source)
 	if err != nil && chapterId == "" {
 		return nil, err
@@ -134,7 +134,7 @@ func (p *MangaDexParser) DownloadPages(pages [][]byte, chapterName string) error
 	return nil
 }
 
-func (p *MangaDexParser) ExtractChapterList() error {
+func (p *MangaDexParser) ExtractChapterContentByList(batchSize int) error {
 	return fmt.Errorf("Not supported")
 }
 

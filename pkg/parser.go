@@ -22,6 +22,9 @@ var SupportedMangaParsers map[string]MangaParsers = map[string]MangaParsers{
 }
 
 func NewMangaParser(args *manga.MangaParserArgs) (manga.MangaParser, error) {
+	if err := args.Validate(); err != nil {
+		return nil, err
+	}
 	value, ok := SupportedMangaParsers[args.Source.Host]
 	if !ok {
 		return nil, errors.Join(internal.SetSemanticError(), fmt.Errorf("Unsupported Source Link"))
@@ -37,10 +40,10 @@ func NewMangaParser(args *manga.MangaParserArgs) (manga.MangaParser, error) {
 	}
 }
 
-func Execute(parser manga.MangaParser, operation manga.Operation) error {
-	switch operation {
+func Execute(parser manga.MangaParser, args *manga.MangaParserArgs) error {
+	switch args.Operation {
 	case manga.DownloadOperation:
-		pages, err := parser.ExtractSingleChapter()
+		pages, err := parser.ExtractChapterContent()
 		if err != nil {
 			return fmt.Errorf("Error in source content extraction, get %s\n", err)
 		}
@@ -50,10 +53,10 @@ func Execute(parser manga.MangaParser, operation manga.Operation) error {
 		}
 		err = parser.DownloadPages(pages, chn)
 		if err != nil {
-			fmt.Errorf("Error in pages download, get %s\n", err)
+			return fmt.Errorf("Error in pages download, get %s\n", err)
 		}
 	case manga.DownloadListOperation:
-		err := parser.ExtractChapterList()
+		err := parser.ExtractChapterContentByList(args.ListBatchSize)
 		if err != nil {
 			return fmt.Errorf("Error in manga list, get %s\n", err)
 		}
@@ -61,4 +64,15 @@ func Execute(parser manga.MangaParser, operation manga.Operation) error {
 		return fmt.Errorf("Invalid operation")
 	}
 	return nil
+}
+
+func Listen(args *manga.MangaParserArgs, done chan bool) {
+	for {
+		select {
+		case err := <-args.ErrorChan:
+			fmt.Printf("Error: %s", err)
+		case <-done:
+			return
+		}
+	}
 }

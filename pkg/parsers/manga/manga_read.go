@@ -3,6 +3,7 @@ package manga
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -23,6 +24,7 @@ type MangaReadParser struct {
 	regex        *scraper.RegexParser
 	imageManager *internal.ImageManager
 	htmlManager  *scraper.HtmlManager
+	errorChan    chan error
 }
 
 func NewMangaReadParser(args *MangaParserArgs) *MangaReadParser {
@@ -65,7 +67,7 @@ func (p *MangaReadParser) getChapterName(source string) (string, error) {
 	return chapterName, nil
 }
 
-func (p *MangaReadParser) extractChapter(source string) ([][]byte, error) {
+func (p *MangaReadParser) extractChapterContent(source string) ([][]byte, error) {
 	downloadInfo, err := p.client.Get(context.Background(), source)
 	if err != nil {
 		return nil, err
@@ -98,7 +100,7 @@ func (p *MangaReadParser) extractChapter(source string) ([][]byte, error) {
 	return pages, nil
 }
 
-func (p *MangaReadParser) ExtractChapterList() error {
+func (p *MangaReadParser) ExtractChapterContentByList(batchSize int) error {
 	downloadInfo, err := p.client.Get(context.Background(), p.args.Source.String())
 	if err != nil {
 		return err
@@ -116,41 +118,32 @@ func (p *MangaReadParser) ExtractChapterList() error {
 
 	links := p.htmlManager.ListHtmlContent(doc, "a", "href", fmt.Sprintf("%schapter.*", urlTemplate))
 	if len(links) == 0 {
-		return fmt.Errorf("cant extract manga links")
+		return fmt.Errorf("Cant extract manga links, link list is empty")
 	}
 
-	ch := make(chan error)
-	var wg sync.WaitGroup
+	wg := new(sync.WaitGroup)
+	extractor := func(link string, wg *sync.WaitGroup, ch chan error) {
+		defer wg.Done()
 
-	batch := 0
-	for _, link := range links {
-		wg.Add(1)
-		go func() {
-			fmt.Printf("Init job in link: %s\n", link)
-			chp, err := p.extractChapter(link)
-			if err != nil {
-				ch <- err
-			}
-			chn, err := p.getChapterName(link)
-			if err != nil || chn == "" {
-				chn = p.args.Source.String()
-			}
-			if err = p.DownloadPages(chp, chn); err != nil {
-				ch <- err
-			}
-			fmt.Println("Done")
-			wg.Done()
-		}()
-		batch++
-		if batch == 5 {
-			wg.Wait()
-			batch = 0
+		fmt.Printf("Init extraction in link: %s\n", link)
+		errFmt := fmt.Errorf("Error in link content extraction: %s", link)
+		chp, err := p.extractChapterContent(link)
+		if err != nil {
+			ch <- errors.Join(errFmt, err)
 		}
+		chn, err := p.getChapterName(link)
+		if err != nil || chn == "" {
+			chn = p.args.Source.String()
+		}
+		if err = p.DownloadPages(chp, chn); err != nil {
+			ch <- errors.Join(errFmt, err)
+		}
+		fmt.Println("Done")
 	}
 
-	wg.Wait()
-	close(ch)
-
+	if err = ExtractList(links, batchSize, extractor, wg, p.args.ErrorChan); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -158,8 +151,8 @@ func (p *MangaReadParser) ExtractChapterName() (string, error) {
 	return p.getChapterName(p.args.Source.String())
 }
 
-func (p *MangaReadParser) ExtractSingleChapter() ([][]byte, error) {
-	return p.extractChapter(p.args.Source.String())
+func (p *MangaReadParser) ExtractChapterContent() ([][]byte, error) {
+	return p.extractChapterContent(p.args.Source.String())
 }
 
 func (p *MangaReadParser) DownloadPages(pages [][]byte, chapterName string) error {

@@ -34,9 +34,14 @@ type Download struct {
 	DefaultArgs
 }
 
+type DownloadList struct {
+	DefaultArgs
+	BatchListSize int `arg:"-b, --batch" help:"Batch size from list manga download" default:"5"`
+}
+
 type Manga struct {
-	Download     *Download `arg:"subcommand:d" help:"Download Manga from source"`
-	DownloadList *Download `arg:"subcommand:dl" help:"Download Manga chapters list from source"`
+	Download     *Download     `arg:"subcommand:d" help:"Download Manga from source"`
+	DownloadList *DownloadList `arg:"subcommand:dl" help:"Download Manga chapters list from source"`
 }
 
 type ConsoleArgs struct {
