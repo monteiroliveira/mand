@@ -21,6 +21,8 @@ func NewHttpClient() *HttpClient {
 	retryClient.CheckRetry = checkRetry
 	retryClient.Backoff = backoff
 
+	retryClient.Logger = nil
+
 	return &HttpClient{
 		client: retryClient.StandardClient(),
 	}
