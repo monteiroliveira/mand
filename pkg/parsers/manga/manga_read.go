@@ -121,14 +121,14 @@ func (p *MangaReadParser) ExtractChapterList() error {
 
 	ch := make(chan error)
 	var wg sync.WaitGroup
-	fmt.Println(len(links))
-	wg.Add(len(links))
 
+	batch := 0
 	for _, link := range links {
+		wg.Add(1)
 		go func() {
+			fmt.Printf("Init job in link: %s\n", link)
 			chp, err := p.extractChapter(link)
 			if err != nil {
-				// TODO: Log error
 				ch <- err
 			}
 			chn, err := p.getChapterName(link)
@@ -138,8 +138,14 @@ func (p *MangaReadParser) ExtractChapterList() error {
 			if err = p.DownloadPages(chp, chn); err != nil {
 				ch <- err
 			}
+			fmt.Println("Done")
 			wg.Done()
 		}()
+		batch++
+		if batch == 5 {
+			wg.Wait()
+			batch = 0
+		}
 	}
 
 	wg.Wait()
