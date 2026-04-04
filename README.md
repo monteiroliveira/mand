@@ -1,14 +1,36 @@
 ## Mand - Manga And Novel Downloader
 
-CLI application to Download Mangas & Novel from mapped sources.
+CLI application to download Mangas & Novels from mapped sources.
+
+Mand automatically detects the source from the provided URL and uses the appropriate parser to scrape or fetch chapter data. Each parser handles page extraction, naming, and output format specific to its source. Downloaded chapters are saved locally as images or PDFs depending on the source.
+
+### How it works
+
+1. You provide a manga URL from a supported source
+2. Mand identifies the source by the URL hostname and selects the right parser
+3. For single chapter downloads (`d`), it extracts all pages and saves them as a single file
+4. For list downloads (`dl`), it extracts all chapter links from the manga page and downloads them concurrently using async workers
+
+### Build
 
 ```bash
-go build cmd/main.go -o mand
+go build -o mand cmd/main.go
 ```
 
+### Usage
+
 ```bash
-mand manga d {{ MANGA_URL }}
+# Download a single chapter
+mand manga d <SOURCE_URL>
+
+# Download chapters list from source
+mand manga dl <SOURCE_URL> [-b <batch_size>]
 ```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `-b, --batch` | `5` | Batch size for async workers in list download |
+| `-v, --verbose` | — | Verbosity level |
 
 > [!NOTE]
 > Supported Parsers:
