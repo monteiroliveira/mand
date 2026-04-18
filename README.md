@@ -14,7 +14,15 @@ Mand automatically detects the source from the provided URL and uses the appropr
 ### Build
 
 ```bash
-go build -o mand cmd/main.go
+make build
+```
+
+### Install / Uninstall
+
+```bash
+make install            # installs to /usr/local/bin
+make install PREFIX=~/.local  # custom prefix
+make uninstall
 ```
 
 ### Usage
@@ -30,16 +38,25 @@ mand manga dl <SOURCE_URL> [-b <batch_size>]
 | Flag | Default | Description |
 |------|---------|-------------|
 | `-b, --batch` | `5` | Batch size for async workers in list download |
-| `-v, --verbose` | — | Verbosity level |
+| `-v, --verbose` | `0` | Verbosity level (1 info, 2 debug, 3 trace) |
 
 > [!NOTE]
 > Supported Parsers:
 > - [x] Manga Dex
 > - [x] Manga Read
 
+### Development
+
+```bash
+make test    # run tests
+make fmt     # format code
+make lint    # run linter
+make clean   # remove build artifacts
+```
+
 > [!NOTE]
 > TODOs:
-> - [ ] Create a log system;
+> - [x] Create a log system;
 > - [ ] Add a way control to what chapter will be downloaded from download list (dl) operation;
 > - [x] Add async workers control from download list (dl) operation;
 > - [ ] Add more parsers;
