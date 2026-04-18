@@ -122,12 +122,7 @@ func (p *MangaDexParser) ExtractChapterContent() ([][]byte, error) {
 }
 
 func (p *MangaDexParser) DownloadPages(pages [][]byte, chapterName string) error {
-	content, err := p.imageManager.ConcatPages(pages)
-	if err != nil {
-		return err
-	}
-
-	if err = p.imageManager.SaveImageInSystem(content, chapterName); err != nil {
+	if err := p.imageManager.SavePdfInSystem(pages, chapterName); err != nil {
 		return err
 	}
 
