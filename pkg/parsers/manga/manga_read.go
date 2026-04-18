@@ -20,6 +20,7 @@ var (
 
 type MangaReadParser struct {
 	args         *MangaParserArgs
+	log          internal.Logger
 	client       *scraper.HttpClient
 	regex        *scraper.RegexParser
 	imageManager *internal.ImageManager
@@ -30,6 +31,7 @@ type MangaReadParser struct {
 func NewMangaReadParser(args *MangaParserArgs) *MangaReadParser {
 	return &MangaReadParser{
 		args:         args,
+		log:          args.Log,
 		client:       scraper.NewHttpClient(),
 		regex:        scraper.NewRegexParser(),
 		imageManager: internal.NewImageManager(),
@@ -39,10 +41,11 @@ func NewMangaReadParser(args *MangaParserArgs) *MangaReadParser {
 
 func (p *MangaReadParser) buildContentPages(links []string) ([][]byte, error) {
 	var pages [][]byte
-	for _, link := range links {
+	for i, link := range links {
+		p.log.Trace("Fetching page %d/%d: %s", i+1, len(links), link)
 		page, err := p.client.Get(context.Background(), link)
 		if err != nil {
-			// build up error list with join
+			p.log.Debug("Failed to fetch page %d: %s", i+1, err)
 			continue
 		}
 		pages = append(pages, page)
@@ -68,6 +71,7 @@ func (p *MangaReadParser) getChapterName(source string) (string, error) {
 }
 
 func (p *MangaReadParser) extractChapterContent(source string) ([][]byte, error) {
+	p.log.Trace("Fetching chapter page: %s", source)
 	downloadInfo, err := p.client.Get(context.Background(), source)
 	if err != nil {
 		return nil, err
@@ -93,14 +97,17 @@ func (p *MangaReadParser) extractChapterContent(source string) ([][]byte, error)
 		return nil, fmt.Errorf("cant extract manga links")
 	}
 
+	p.log.Info("Downloading %d pages", len(links))
 	pages, err := p.buildContentPages(links)
 	if err != nil {
 		return nil, err
 	}
+	p.log.Debug("Downloaded %d/%d pages", len(pages), len(links))
 	return pages, nil
 }
 
 func (p *MangaReadParser) ExtractChapterContentByList(batchSize int) error {
+	p.log.Trace("Fetching manga page: %s", p.args.Source.String())
 	downloadInfo, err := p.client.Get(context.Background(), p.args.Source.String())
 	if err != nil {
 		return err
@@ -120,16 +127,18 @@ func (p *MangaReadParser) ExtractChapterContentByList(batchSize int) error {
 	if len(links) == 0 {
 		return fmt.Errorf("Cant extract manga links, link list is empty")
 	}
+	p.log.Info("Found %d chapters (batch size: %d)", len(links), batchSize)
 
 	wg := new(sync.WaitGroup)
 	extractor := func(link string, wg *sync.WaitGroup, ch chan error) {
 		defer wg.Done()
 
-		fmt.Printf("Init extraction in link: %s\n", link)
+		p.log.Debug("Extracting chapter: %s", link)
 		errFmt := fmt.Errorf("Error in link content extraction: %s", link)
 		chp, err := p.extractChapterContent(link)
 		if err != nil {
 			ch <- errors.Join(errFmt, err)
+			return
 		}
 		chn, err := p.getChapterName(link)
 		if err != nil || chn == "" {
@@ -137,8 +146,9 @@ func (p *MangaReadParser) ExtractChapterContentByList(batchSize int) error {
 		}
 		if err = p.DownloadPages(chp, chn); err != nil {
 			ch <- errors.Join(errFmt, err)
+			return
 		}
-		fmt.Println("Done")
+		p.log.Debug("Chapter done: %s", chn)
 	}
 
 	if err = ExtractList(links, batchSize, extractor, wg, p.args.ErrorChan); err != nil {
@@ -156,10 +166,11 @@ func (p *MangaReadParser) ExtractChapterContent() ([][]byte, error) {
 }
 
 func (p *MangaReadParser) DownloadPages(pages [][]byte, chapterName string) error {
+	p.log.Info("Saving PDF: %s.pdf", chapterName)
 	if err := p.imageManager.SavePdfInSystem(pages, chapterName); err != nil {
 		return err
 	}
-
+	p.log.Debug("PDF saved: %s.pdf (%d pages)", chapterName, len(pages))
 	return nil
 }
 

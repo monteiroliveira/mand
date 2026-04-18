@@ -10,7 +10,7 @@ import (
 
 type MangaParserArgs struct {
 	Source        *url.URL
-	Verbose       bool
+	Log           internal.Logger
 	Operation     Operation
 	ErrorChan     chan error
 	ListBatchSize int

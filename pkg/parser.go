@@ -70,7 +70,7 @@ func Listen(args *manga.MangaParserArgs, done chan bool) {
 	for {
 		select {
 		case err := <-args.ErrorChan:
-			fmt.Printf("Error: %s", err)
+			args.Log.Error("Error: %s", err)
 		case <-done:
 			return
 		}

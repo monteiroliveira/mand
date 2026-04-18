@@ -46,7 +46,7 @@ type Manga struct {
 
 type ConsoleArgs struct {
 	Manga   *Manga `arg:"subcommand:manga"`
-	Verbose bool   `arg:"-v,--verbose" help:"Verbosity level"`
+	Verbose int    `arg:"-v,--verbose" help:"Verbosity level (1 info, 2 debug, 3 trace)" default:"0"`
 }
 
 func NewArgs() *ConsoleArgs {

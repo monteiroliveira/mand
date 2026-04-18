@@ -80,7 +80,6 @@ func (i *ImageManager) SaveImageInSystem(content image.Image, path string) error
 	path = path + ".png"
 	f, err := os.Create(path)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 	defer f.Close()
@@ -89,7 +88,6 @@ func (i *ImageManager) SaveImageInSystem(content image.Image, path string) error
 		CompressionLevel: png.BestCompression,
 	}
 	if err = encoder.Encode(f, content); err != nil {
-		fmt.Println(err)
 		return err
 	}
 
@@ -146,10 +144,5 @@ func (i *ImageManager) SavePdfInSystem(pages [][]byte, chapterName string) error
 		pdf.Image(path, 0, 0, width, height, false, "", 0, "")
 	}
 
-	err := pdf.OutputFileAndClose(chapterName + ".pdf")
-	if err != nil {
-		fmt.Println("Fail to create pdf")
-	}
-
-	return nil
+	return pdf.OutputFileAndClose(chapterName + ".pdf")
 }

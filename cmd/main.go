@@ -13,11 +13,13 @@ func main() {
 	done := make(chan bool)
 	args := internal.NewArgs()
 
+	log := internal.NewLogger(args.Verbose)
+
 	// TODO: create a mand module and initialize cli in internal (cli) package
 	switch {
 	case args.Manga != nil:
 		mangaArgs := &manga.MangaParserArgs{
-			Verbose:   args.Verbose,
+			Log:       log,
 			ErrorChan: make(chan error),
 		}
 		if args.Manga.Download != nil {
@@ -32,12 +34,13 @@ func main() {
 
 		parser, err := pkg.NewMangaParser(mangaArgs)
 		if err != nil {
-			fmt.Printf("Error getting the parser from source, get %s\n", err)
+			log.Error("Error getting the parser from source, get %s", err)
+			return
 		}
 		go pkg.Listen(mangaArgs, done)
 		if err = pkg.Execute(parser, mangaArgs); err != nil {
 			err = errors.Join(fmt.Errorf("Error executing command"), err)
-			fmt.Println(err)
+			log.Error("%s", err)
 		}
 		done <- true
 	}

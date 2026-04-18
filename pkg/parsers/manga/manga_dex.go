@@ -28,6 +28,7 @@ var (
 type MangaDexParser struct {
 	source       *url.URL
 	chapterId    string
+	log          internal.Logger
 	client       *scraper.HttpClient
 	imageManager *internal.ImageManager
 	htmlManager  *scraper.HtmlManager
@@ -37,6 +38,7 @@ func NewMangaDexParser(args *MangaParserArgs) *MangaDexParser {
 	return &MangaDexParser{
 		source:       args.Source,
 		chapterId:    "",
+		log:          args.Log,
 		client:       scraper.NewHttpClient(),
 		imageManager: internal.NewImageManager(),
 		htmlManager:  scraper.NewHtmlManager(),
@@ -66,10 +68,11 @@ func buildDownloadList(downloadInfo *models.MangaDexChapterDownloadInfo) []strin
 
 func (p *MangaDexParser) buildContentPages(links []string) ([][]byte, error) {
 	var pages [][]byte
-	for _, link := range links {
+	for i, link := range links {
+		p.log.Trace("Fetching page %d/%d: %s", i+1, len(links), link)
 		page, err := p.client.Get(context.Background(), link)
 		if err != nil {
-			// build up error list with join
+			p.log.Debug("Failed to fetch page %d: %s", i+1, err)
 			continue
 		}
 		pages = append(pages, page)
@@ -78,6 +81,7 @@ func (p *MangaDexParser) buildContentPages(links []string) ([][]byte, error) {
 }
 
 func (p *MangaDexParser) ExtractChapterName() (string, error) {
+	p.log.Trace("Scraping chapter name from: %s", p.source.String())
 	ch, err := p.client.Get(context.Background(), p.source.String())
 	if err != nil {
 		return "", err
@@ -89,8 +93,10 @@ func (p *MangaDexParser) ExtractChapterName() (string, error) {
 	}
 	chapterName := p.htmlManager.FindHtmlContent(doc, "meta", "property", "^og:title$")
 	if chapterName == "" {
+		p.log.Debug("Chapter name not found, falling back to source URL")
 		return p.source.String(), nil
 	}
+	p.log.Debug("Chapter name: %s", chapterName)
 	return chapterName, nil
 }
 
@@ -101,8 +107,10 @@ func (p *MangaDexParser) ExtractChapterContent() ([][]byte, error) {
 		return nil, err
 	}
 	p.chapterId = chapterId
+	p.log.Debug("Extracted chapter ID: %s", chapterId)
 
 	downloadEndpoint := mangaDexChDownEndpoint + chapterId
+	p.log.Trace("Fetching download info from: %s", downloadEndpoint)
 	downloadInfo, err := p.client.Get(context.Background(), downloadEndpoint)
 	if err != nil {
 		return nil, err
@@ -114,18 +122,19 @@ func (p *MangaDexParser) ExtractChapterContent() ([][]byte, error) {
 	}
 
 	links := buildDownloadList(&chDownInfo)
+	p.log.Info("Downloading %d pages", len(links))
 	pages, err := p.buildContentPages(links)
-
-	// TODO: Show failed pages download
+	p.log.Debug("Downloaded %d/%d pages", len(pages), len(links))
 
 	return pages, nil
 }
 
 func (p *MangaDexParser) DownloadPages(pages [][]byte, chapterName string) error {
+	p.log.Info("Saving PDF: %s.pdf", chapterName)
 	if err := p.imageManager.SavePdfInSystem(pages, chapterName); err != nil {
 		return err
 	}
-
+	p.log.Debug("PDF saved: %s.pdf (%d pages)", chapterName, len(pages))
 	return nil
 }
 
